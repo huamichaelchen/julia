@@ -26,7 +26,7 @@ end
 
 convert(::Type{Tridiagonal}, A::Bidiagonal{T}) where {T} =
     Tridiagonal(A.isupper ? zeros(T, size(A.dv,1)-1) : A.ev, A.dv,
-                A.isupper ? A.ev:zeros(T, size(A.dv,1)-1))
+                A.isupper ? A.ev : zeros(T, size(A.dv,1)-1))
 
 function convert(::Type{Bidiagonal}, A::SymTridiagonal)
     if !iszero(A.ev)
