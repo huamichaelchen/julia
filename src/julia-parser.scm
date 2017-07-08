@@ -151,6 +151,8 @@
 (define whitespace-newline #f)
 ; enable parsing `where` with high precedence
 (define where-enabled #t)
+; the question mark is only allowed as a token in ternary expressions
+(define allow-question-mark #f)
 
 (define current-filename 'none)
 
@@ -185,6 +187,10 @@
 
 (define-macro (without-whitespace-newline . body)
   `(with-bindings ((whitespace-newline #f))
+                  ,@body))
+
+(define-macro (with-allow-question-mark . body)
+  `(with-bindings ((allow-question-mark #t))
                   ,@body))
 
 ;; --- lexer ---
@@ -541,11 +547,14 @@
                    t)))))
 
 (define (take-token s)
-  (or
-   (begin0 (ts:pbtok s)
-           (aset! s 3 #f))
-   (begin0 (ts:last-tok s)
-           (ts:set-tok! s #f))))
+  (let ((t (or
+             (begin0 (ts:pbtok s)
+                     (aset! s 3 #f))
+             (begin0 (ts:last-tok s)
+                     (ts:set-tok! s #f)))))
+   (if (and (not allow-question-mark) (eq? t '?))
+       (syntax-deprecation s "`?` used as an identifier" ""))
+   t))
 
 ;; --- misc ---
 
@@ -736,7 +745,7 @@
     (cond ((eq? (peek-token s) '?)
            (begin (if (not (ts:space? s))
                       (syntax-deprecation s (string (deparse ex) "?") (string (deparse ex) " ?")))
-                  (take-token s) ; take the ?
+                  (with-allow-question-mark (take-token s)) ; take the ?
                   (let ((t (with-whitespace-newline (without-range-colon (peek-token s)))))
                     (if (not (ts:space? s))
                         (syntax-deprecation s (string (deparse ex) " ?" (deparse t)) (string (deparse ex) " ? " (deparse t)))))
