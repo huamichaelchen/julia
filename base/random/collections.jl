@@ -17,10 +17,14 @@ end
 
 rand!(A::AbstractArray, r::AbstractArray) = rand!(GLOBAL_RNG, A, r)
 
-rand(rng::AbstractRNG, r::AbstractArray{T}, dims::Dims) where {T} = rand!(rng, Array{T}(dims), r)
-rand(                  r::AbstractArray,    dims::Dims)           = rand(GLOBAL_RNG, r, dims)
-rand(rng::AbstractRNG, r::AbstractArray,    dims::Integer...) = rand(rng, r, convert(Dims, dims))
-rand(                  r::AbstractArray,    dims::Integer...) = rand(GLOBAL_RNG, r, convert(Dims, dims))
+rand(rng::AbstractRNG, r::AbstractArray{T}, dims::Dims) where {T} =
+    rand!(rng, Array{T}(dims), r)
+rand(                  r::AbstractArray,    dims::Dims) =
+    rand(GLOBAL_RNG, r, dims)
+rand(rng::AbstractRNG, r::AbstractArray,    dims::Integer...) =
+    rand(rng, r, convert(Dims, dims))
+rand(                  r::AbstractArray,    dims::Integer...) =
+    rand(GLOBAL_RNG, r, convert(Dims, dims))
 
 ## random values from Dict, Set, IntSet
 
@@ -68,14 +72,18 @@ function rand!(r::AbstractRNG, A::AbstractArray, s::Union{Dict,Set,IntSet})
 end
 
 # avoid linear complexity for repeated calls with generic containers
-rand!(r::AbstractRNG, A::AbstractArray, s::Union{Associative,AbstractSet}) = rand!(r, A, collect(s))
+rand!(r::AbstractRNG, A::AbstractArray, s::Union{Associative,AbstractSet}) =
+    rand!(r, A, collect(s))
 
 rand!(A::AbstractArray, s::Union{Associative,AbstractSet}) = rand!(GLOBAL_RNG, A, s)
 
-rand(r::AbstractRNG, s::Associative{K,V}, dims::Dims) where {K,V} = rand!(r, Array{Pair{K,V}}(dims), s)
+rand(r::AbstractRNG, s::Associative{K,V}, dims::Dims) where {K,V} =
+    rand!(r, Array{Pair{K,V}}(dims), s)
 rand(r::AbstractRNG, s::AbstractSet{T}, dims::Dims) where {T} = rand!(r, Array{T}(dims), s)
-rand(r::AbstractRNG, s::Union{Associative,AbstractSet}, dims::Integer...) = rand(r, s, convert(Dims, dims))
-rand(s::Union{Associative,AbstractSet}, dims::Integer...) = rand(GLOBAL_RNG, s, convert(Dims, dims))
+rand(r::AbstractRNG, s::Union{Associative,AbstractSet}, dims::Integer...) =
+    rand(r, s, convert(Dims, dims))
+rand(s::Union{Associative,AbstractSet}, dims::Integer...) =
+    rand(GLOBAL_RNG, s, convert(Dims, dims))
 rand(s::Union{Associative,AbstractSet}, dims::Dims) = rand(GLOBAL_RNG, s, dims)
 
 ## random characters from a string
@@ -101,10 +109,13 @@ rand(s::AbstractString) = rand(GLOBAL_RNG, s)
 # (except maybe for very small arrays)
 rand!(rng::AbstractRNG, A::AbstractArray, str::AbstractString) = rand!(rng, A, collect(str))
 rand!(A::AbstractArray, str::AbstractString) = rand!(GLOBAL_RNG, A, str)
-rand(rng::AbstractRNG, str::AbstractString, dims::Dims) = rand!(rng, Array{eltype(str)}(dims), str)
-rand(rng::AbstractRNG, str::AbstractString, d1::Integer, dims::Integer...) = rand(rng, str, convert(Dims, tuple(d1, dims...)))
+rand(rng::AbstractRNG, str::AbstractString, dims::Dims) =
+    rand!(rng, Array{eltype(str)}(dims), str)
+rand(rng::AbstractRNG, str::AbstractString, d1::Integer, dims::Integer...) =
+    rand(rng, str, convert(Dims, tuple(d1, dims...)))
 rand(str::AbstractString, dims::Dims) = rand(GLOBAL_RNG, str, dims)
-rand(str::AbstractString, d1::Integer, dims::Integer...) = rand(GLOBAL_RNG, str, d1, dims...)
+rand(str::AbstractString, d1::Integer, dims::Integer...) =
+    rand(GLOBAL_RNG, str, d1, dims...)
 
 ## randstring (often useful for temporary filenames/dirnames)
 

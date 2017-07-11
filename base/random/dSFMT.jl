@@ -13,9 +13,10 @@ export DSFMT_state, dsfmt_get_min_array_size, dsfmt_get_idstring,
 const MEXP = 19937
 
 "DSFMT internal state array size of N 128-bit integers."
-const N    = floor(Int, ((MEXP - 128) / 104 + 1))
+const N = floor(Int, ((MEXP - 128) / 104 + 1))
 
-"""Julia DSFMT state representation size counted in 32-bit integers.
+"""
+Julia DSFMT state representation size counted in 32-bit integers.
 
 Size: (DSFMT state array of Int128 + 1)*4 + Int32 index + Int32 padding
 """

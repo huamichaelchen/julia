@@ -11,8 +11,10 @@ rand(                dims::Integer...) = rand(convert(Dims, dims))
 
 rand(r::AbstractRNG, T::Type, dims::Dims)                    = rand!(r, Array{T}(dims))
 rand(                T::Type, dims::Dims)                    = rand(GLOBAL_RNG, T, dims)
-rand(r::AbstractRNG, T::Type, d1::Integer, dims::Integer...) = rand(r, T, tuple(Int(d1), convert(Dims, dims)...))
-rand(                T::Type, d1::Integer, dims::Integer...) = rand(T, tuple(Int(d1), convert(Dims, dims)...))
+rand(r::AbstractRNG, T::Type, d1::Integer, dims::Integer...) =
+    rand(r, T, tuple(Int(d1), convert(Dims, dims)...))
+rand(                T::Type, d1::Integer, dims::Integer...) =
+    rand(T, tuple(Int(d1), convert(Dims, dims)...))
 # note: the above method would trigger an ambiguity warning if d1 was not separated out:
 # rand(r, ()) would match both this method and rand(r, dims::Dims)
 # moreover, a call like rand(r, NotImplementedType()) would be an infinite loop
@@ -29,7 +31,8 @@ rand!(A::AbstractArray{T}, ::Type{X}=T) where {T,X} = rand!(GLOBAL_RNG, A, X)
 ## MersenneTwister
 
 function rand_AbstractArray_Float64!(r::MersenneTwister, A::AbstractArray{Float64},
-                                     n=length(A), ::Type{I}=CloseOpen) where I<:FloatInterval
+                                     n=length(A),
+                                     ::Type{I}=CloseOpen) where I<:FloatInterval
     # what follows is equivalent to this simple loop but more efficient:
     # for i=1:n
     #     @inbounds A[i] = rand(r, I)
@@ -52,10 +55,13 @@ end
 
 rand!(r::MersenneTwister, A::AbstractArray{Float64}) = rand_AbstractArray_Float64!(r, A)
 
-fill_array!(s::DSFMT_state, A::Ptr{Float64}, n::Int, ::Type{CloseOpen}) = dsfmt_fill_array_close_open!(s, A, n)
-fill_array!(s::DSFMT_state, A::Ptr{Float64}, n::Int, ::Type{Close1Open2}) = dsfmt_fill_array_close1_open2!(s, A, n)
+fill_array!(s::DSFMT_state, A::Ptr{Float64}, n::Int, ::Type{CloseOpen}) =
+    dsfmt_fill_array_close_open!(s, A, n)
+fill_array!(s::DSFMT_state, A::Ptr{Float64}, n::Int, ::Type{Close1Open2}) =
+    dsfmt_fill_array_close1_open2!(s, A, n)
 
-function rand!(r::MersenneTwister, A::Array{Float64}, n::Int=length(A), ::Type{I}=CloseOpen) where I<:FloatInterval
+function rand!(r::MersenneTwister, A::Array{Float64}, n::Int=length(A),
+               ::Type{I}=CloseOpen) where I<:FloatInterval
     # depending on the alignment of A, the data written by fill_array! may have
     # to be left-shifted by up to 15 bytes (cf. unsafe_copy! below) for
     # reproducibility purposes;
@@ -85,25 +91,31 @@ function rand!(r::MersenneTwister, A::Array{Float64}, n::Int=length(A), ::Type{I
     A
 end
 
-@inline mask128(u::UInt128, ::Type{Float16}) = (u & 0x03ff03ff03ff03ff03ff03ff03ff03ff) | 0x3c003c003c003c003c003c003c003c00
-@inline mask128(u::UInt128, ::Type{Float32}) = (u & 0x007fffff007fffff007fffff007fffff) | 0x3f8000003f8000003f8000003f800000
+@inline mask128(u::UInt128, ::Type{Float16}) =
+    (u & 0x03ff03ff03ff03ff03ff03ff03ff03ff) | 0x3c003c003c003c003c003c003c003c00
+@inline mask128(u::UInt128, ::Type{Float32}) =
+    (u & 0x007fffff007fffff007fffff007fffff) | 0x3f8000003f8000003f8000003f800000
 
-function rand!(r::MersenneTwister, A::Union{Array{Float16},Array{Float32}}, ::Type{Close1Open2})
+function rand!(r::MersenneTwister, A::Union{Array{Float16},Array{Float32}},
+               ::Type{Close1Open2})
     T = eltype(A)
     n = length(A)
     n128 = n * sizeof(T) ÷ 16
-    rand!(r, unsafe_wrap(Array, convert(Ptr{Float64}, pointer(A)), 2*n128), 2*n128, Close1Open2)
+    rand!(r, unsafe_wrap(Array, convert(Ptr{Float64}, pointer(A)), 2*n128),
+          2*n128, Close1Open2)
     A128 = unsafe_wrap(Array, convert(Ptr{UInt128}, pointer(A)), n128)
     @inbounds for i in 1:n128
         u = A128[i]
         u ⊻= u << 26
-        # at this point, the 64 low bits of u, "k" being the k-th bit of A128[i] and "+" the bit xor, are:
+        # at this point, the 64 low bits of u, "k" being the k-th bit of A128[i] and "+"
+        # the bit xor, are:
         # [..., 58+32,..., 53+27, 52+26, ..., 33+7, 32+6, ..., 27+1, 26, ..., 1]
         # the bits needing to be random are
         # [1:10, 17:26, 33:42, 49:58] (for Float16)
         # [1:23, 33:55] (for Float32)
-        # this is obviously satisfied on the 32 low bits side, and on the high side, the entropy comes
-        # from bits 33:52 of A128[i] and then from bits 27:32 (which are discarded on the low side)
+        # this is obviously satisfied on the 32 low bits side, and on the high side,
+        # the entropy comes from bits 33:52 of A128[i] and then from bits 27:32
+        # (which are discarded on the low side)
         # this is similar for the 64 high bits of u
         A128[i] = mask128(u, T)
     end
@@ -113,7 +125,8 @@ function rand!(r::MersenneTwister, A::Union{Array{Float16},Array{Float32}}, ::Ty
     A
 end
 
-function rand!(r::MersenneTwister, A::Union{Array{Float16},Array{Float32}}, ::Type{CloseOpen})
+function rand!(r::MersenneTwister, A::Union{Array{Float16},Array{Float32}},
+               ::Type{CloseOpen})
     rand!(r, A, Close1Open2)
     I32 = one(Float32)
     for i in eachindex(A)

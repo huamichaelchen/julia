@@ -22,8 +22,9 @@ MersenneTwister(seed::Vector{UInt32}, state::DSFMT_state) =
 """
     MersenneTwister(seed)
 
-Create a `MersenneTwister` RNG object. Different RNG objects can have their own seeds, which
-may be useful for generating different streams of random numbers.
+Create a `MersenneTwister` RNG object. Different RNG objects can have
+their own seeds, which may be useful for generating different streams
+of random numbers.
 
 # Examples
 ```jldoctest
@@ -59,7 +60,8 @@ copy(src::MersenneTwister) =
     MersenneTwister(copy(src.seed), copy(src.state), copy(src.vals), src.idx)
 
 ==(r1::MersenneTwister, r2::MersenneTwister) =
-    r1.seed == r2.seed && r1.state == r2.state && isequal(r1.vals, r2.vals) && r1.idx == r2.idx
+    r1.seed == r2.seed && r1.state == r2.state && isequal(r1.vals, r2.vals) &&
+    r1.idx == r2.idx
 
 
 ## Low level API for MersenneTwister
@@ -82,12 +84,15 @@ end
 
 # precondition: !mt_empty(r)
 @inline rand_inbounds(r::MersenneTwister, ::Type{Close1Open2}) = mt_pop!(r)
-@inline rand_inbounds(r::MersenneTwister, ::Type{CloseOpen}) = rand_inbounds(r, Close1Open2) - 1.0
+@inline rand_inbounds(r::MersenneTwister, ::Type{CloseOpen}) =
+    rand_inbounds(r, Close1Open2) - 1.0
 @inline rand_inbounds(r::MersenneTwister) = rand_inbounds(r, CloseOpen)
 
-@inline rand_ui52_raw_inbounds(r::MersenneTwister) = reinterpret(UInt64, rand_inbounds(r, Close1Open2))
+@inline rand_ui52_raw_inbounds(r::MersenneTwister) =
+    reinterpret(UInt64, rand_inbounds(r, Close1Open2))
 @inline rand_ui52_raw(r::MersenneTwister) = (reserve_1(r); rand_ui52_raw_inbounds(r))
-@inline rand_ui2x52_raw(r::MersenneTwister) = rand_ui52_raw(r) % UInt128 << 64 | rand_ui52_raw(r)
+@inline rand_ui2x52_raw(r::MersenneTwister) =
+    rand_ui52_raw(r) % UInt128 << 64 | rand_ui52_raw(r)
 
 rand_ui10_raw(r::MersenneTwister) = rand_ui52_raw(r)
 rand_ui23_raw(r::MersenneTwister) = rand_ui52_raw(r)
@@ -114,4 +119,5 @@ function randjump(mt::MersenneTwister, jumps::Integer, jumppoly::AbstractString)
     end
     return mts
 end
+
 randjump(r::MersenneTwister, jumps::Integer) = randjump(r, jumps, dSFMT.JPOLY1e21)

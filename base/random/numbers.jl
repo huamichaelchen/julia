@@ -14,7 +14,8 @@
 
 @inline rand(r::Union{RandomDevice,MersenneTwister}, ::Type{Float64}) = rand(r, CloseOpen)
 
-@inline rand(r::MersenneTwister, ::Type{I}) where {I<:FloatInterval} = (reserve_1(r); rand_inbounds(r, I))
+@inline rand(r::MersenneTwister, ::Type{I}) where {I<:FloatInterval} =
+    (reserve_1(r); rand_inbounds(r, I))
 
 rand(rng::RandomDevice, ::Type{Close1Open2}) =
     reinterpret(Float64, 0x3ff0000000000000 | rand(rng, UInt64) & 0x000fffffffffffff)
@@ -24,7 +25,8 @@ rand(rng::RandomDevice, ::Type{CloseOpen}) = rand(rng, Close1Open2) - 1.0
 #### Float16 & Float32
 
 rand(r::Union{RandomDevice,MersenneTwister}, ::Type{Float16}) =
-    Float16(reinterpret(Float32, (rand_ui10_raw(r) % UInt32 << 13) & 0x007fe000 | 0x3f800000) - 1)
+    Float16(reinterpret(
+        Float32, (rand_ui10_raw(r) % UInt32 << 13) & 0x007fe000 | 0x3f800000) - 1)
 
 rand(r::Union{RandomDevice,MersenneTwister}, ::Type{Float32}) =
     reinterpret(Float32, rand_ui23_raw(r) % UInt32 & 0x007fffff | 0x3f800000) - 1
@@ -40,8 +42,9 @@ rand_ui23_raw(r::AbstractRNG) = rand(r, UInt32)
 
 ### MersenneTwister
 
-@inline rand(r::MersenneTwister, ::Type{T}) where {T<:Union{Bool,Int8,UInt8,Int16,UInt16,Int32,UInt32}} =
-    rand_ui52_raw(r) % T
+@inline rand(r::MersenneTwister,
+             ::Type{T}) where {T<:Union{Bool,Int8,UInt8,Int16,UInt16,Int32,UInt32}} =
+                 rand_ui52_raw(r) % T
 
 function rand(r::MersenneTwister, ::Type{UInt64})
     reserve(r, 2)

@@ -13,20 +13,27 @@ rem_knuth(a::T, b::T) where {T<:Unsigned} = b != 0 ? a % b : a
 # maximum multiple of k <= 2^bits(T) decremented by one,
 # that is 0xFFFF...FFFF if k = typemax(T) - typemin(T) with intentional underflow
 # see http://stackoverflow.com/questions/29182036/integer-arithmetic-add-1-to-uint-max-and-divide-by-n-without-overflow
-maxmultiple(k::T) where {T<:Unsigned} = (div(typemax(T) - k + oneunit(k), k + (k == 0))*k + k - oneunit(k))::T
+maxmultiple(k::T) where {T<:Unsigned} =
+    (div(typemax(T) - k + oneunit(k), k + (k == 0))*k + k - oneunit(k))::T
 
 # maximum multiple of k within 1:2^32 or 1:2^64 decremented by one, depending on size
-maxmultiplemix(k::UInt64) = if k >> 32 != 0; maxmultiple(k); else (div(0x0000000100000000, k + (k == 0))*k - oneunit(k))::UInt64; end
+maxmultiplemix(k::UInt64) = k >> 32 != 0 ?
+    maxmultiple(k) :
+    (div(0x0000000100000000, k + (k == 0))*k - oneunit(k))::UInt64
 
 struct RangeGeneratorInt{T<:Integer,U<:Unsigned} <: RangeGenerator
     a::T   # first element of the range
     k::U   # range length or zero for full range
     u::U   # rejection threshold
 end
+
 # generators with 32, 128 bits entropy
-RangeGeneratorInt(a::T, k::U) where {T,U<:Union{UInt32,UInt128}} = RangeGeneratorInt{T,U}(a, k, maxmultiple(k))
+RangeGeneratorInt(a::T, k::U) where {T,U<:Union{UInt32,UInt128}} =
+    RangeGeneratorInt{T,U}(a, k, maxmultiple(k))
+
 # mixed 32/64 bits entropy generator
-RangeGeneratorInt(a::T, k::UInt64) where {T} = RangeGeneratorInt{T,UInt64}(a, k, maxmultiplemix(k))
+RangeGeneratorInt(a::T, k::UInt64) where {T} =
+    RangeGeneratorInt{T,UInt64}(a, k, maxmultiplemix(k))
 
 function RangeGenerator(r::UnitRange{T}) where T<:Unsigned
     isempty(r) && throw(ArgumentError("range must be non-empty"))
@@ -34,14 +41,13 @@ function RangeGenerator(r::UnitRange{T}) where T<:Unsigned
 end
 
 for (T, U) in [(UInt8, UInt32), (UInt16, UInt32),
-               (Int8, UInt32), (Int16, UInt32), (Int32, UInt32), (Int64, UInt64), (Int128, UInt128),
-               (Bool, UInt32)]
+               (Int8, UInt32), (Int16, UInt32), (Int32, UInt32),
+               (Int64, UInt64), (Int128, UInt128), (Bool, UInt32)]
 
     @eval RangeGenerator(r::UnitRange{$T}) = begin
-        if isempty(r)
-            throw(ArgumentError("range must be non-empty"))
-        end
-        RangeGeneratorInt(first(r), convert($U, unsigned(last(r) - first(r)) + one($U))) # overflow ok
+        isempty(r) && throw(ArgumentError("range must be non-empty"))
+        # overflow ok:
+        RangeGeneratorInt(first(r), convert($U, unsigned(last(r) - first(r)) + one($U)))
     end
 end
 
@@ -87,7 +93,7 @@ function rand(rng::AbstractRNG, g::RangeGeneratorInt{T,UInt64}) where T<:Union{U
     return reinterpret(T, reinterpret(UInt64, g.a) + rem_knuth(x, g.k))
 end
 
-function rand(rng::AbstractRNG, g::RangeGeneratorInt{T,U}) where U<:Unsigned where T<:Integer
+function rand(rng::AbstractRNG, g::RangeGeneratorInt{T,U}) where {T<:Integer,U<:Unsigned}
     x = rand(rng, U)
     while x > g.u
         x = rand(rng, U)
@@ -123,6 +129,9 @@ end
 
 ## rand(::UnitRange)
 
-rand(rng::AbstractRNG, r::UnitRange{<:Union{Signed,Unsigned,BigInt,Bool}}) = rand(rng, RangeGenerator(r))
+rand(rng::AbstractRNG, r::UnitRange{<:Union{Signed,Unsigned,BigInt,Bool}}) =
+    rand(rng, RangeGenerator(r))
 
-rand!(rng::AbstractRNG, A::AbstractArray, r::UnitRange{<:Union{Signed,Unsigned,BigInt,Bool,Char}}) = rand!(rng, A, RangeGenerator(r))
+rand!(rng::AbstractRNG, A::AbstractArray,
+      r::UnitRange{<:Union{Signed,Unsigned,BigInt,Bool,Char}}) =
+          rand!(rng, A, RangeGenerator(r))

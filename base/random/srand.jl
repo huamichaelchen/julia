@@ -2,16 +2,18 @@
 
 ## make_seed()
 
-# make_seed methods produce values of type Array{UInt32}, suitable for MersenneTwister seeding
+# make_seed produces values of type Array{UInt32}, suitable for MersenneTwister seeding
 function make_seed()
     try
         return rand(RandomDevice(), UInt32, 4)
     catch
-        println(STDERR, "Entropy pool not available to seed RNG; using ad-hoc entropy sources.")
+        println(STDERR,
+                "Entropy pool not available to seed RNG; using ad-hoc entropy sources.")
         seed = reinterpret(UInt64, time())
         seed = hash(seed, UInt64(getpid()))
         try
-        seed = hash(seed, parse(UInt64, readstring(pipeline(`ifconfig`, `sha1sum`))[1:40], 16))
+            seed = hash(seed, parse(UInt64,
+                                    readstring(pipeline(`ifconfig`, `sha1sum`))[1:40], 16))
         end
         return make_seed(seed)
     end
