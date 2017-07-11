@@ -1,12 +1,18 @@
 # This file is a part of Julia. License is MIT: https://julialang.org/license
 
-## Arrays of random numbers
+# Arrays of random numbers
 
-rand(r::AbstractRNG, dims::Dims) = rand(r, Float64, dims)
+## AbstractRNG
+
+rand(r::AbstractRNG, dims::Dims)       = rand(r, Float64, dims)
+rand(                dims::Dims)       = rand(GLOBAL_RNG, dims)
 rand(r::AbstractRNG, dims::Integer...) = rand(r, convert(Dims, dims))
+rand(                dims::Integer...) = rand(convert(Dims, dims))
 
-rand(r::AbstractRNG, T::Type, dims::Dims) = rand!(r, Array{T}(dims))
+rand(r::AbstractRNG, T::Type, dims::Dims)                    = rand!(r, Array{T}(dims))
+rand(                T::Type, dims::Dims)                    = rand(GLOBAL_RNG, T, dims)
 rand(r::AbstractRNG, T::Type, d1::Integer, dims::Integer...) = rand(r, T, tuple(Int(d1), convert(Dims, dims)...))
+rand(                T::Type, d1::Integer, dims::Integer...) = rand(T, tuple(Int(d1), convert(Dims, dims)...))
 # note: the above method would trigger an ambiguity warning if d1 was not separated out:
 # rand(r, ()) would match both this method and rand(r, dims::Dims)
 # moreover, a call like rand(r, NotImplementedType()) would be an infinite loop
@@ -18,9 +24,9 @@ function rand!(r::AbstractRNG, A::AbstractArray{T}, ::Type{X}=T) where {T,X}
     A
 end
 
-rand!(A::AbstractArray, ::Type{X}) where {X} = rand!(GLOBAL_RNG, A, X)
+rand!(A::AbstractArray{T}, ::Type{X}=T) where {T,X} = rand!(GLOBAL_RNG, A, X)
 
-# MersenneTwister
+## MersenneTwister
 
 function rand_AbstractArray_Float64!(r::MersenneTwister, A::AbstractArray{Float64},
                                      n=length(A), ::Type{I}=CloseOpen) where I<:FloatInterval
@@ -158,7 +164,7 @@ function rand!(r::MersenneTwister, A::Base.BitIntegerArray)
     A
 end
 
-## random BitArrays (AbstractRNG)
+## BitArray
 
 function rand!(rng::AbstractRNG, B::BitArray)
     isempty(B) && return B

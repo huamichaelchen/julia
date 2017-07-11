@@ -5,7 +5,7 @@
 const GLOBAL_RNG = MersenneTwister(0)
 globalRNG() = GLOBAL_RNG
 
-# rand: a non-specified RNG defaults to GLOBAL_RNG
+## rand
 
 """
     rand([rng=GLOBAL_RNG], [S], [dims...])
@@ -41,15 +41,9 @@ julia> rand(MersenneTwister(0), Dict(1=>2, 3=>4))
     collect(s))` instead, or either `rand(rng, Dict(s))` or `rand(rng,
     Set(s))` as appropriate.
 """
-@inline rand() = rand(GLOBAL_RNG, CloseOpen)
-@inline rand(T::Type) = rand(GLOBAL_RNG, T)
-rand(dims::Dims) = rand(GLOBAL_RNG, dims)
-rand(dims::Integer...) = rand(convert(Dims, dims))
-rand(T::Type, dims::Dims) = rand(GLOBAL_RNG, T, dims)
-rand(T::Type, d1::Integer, dims::Integer...) = rand(T, tuple(Int(d1), convert(Dims, dims)...))
-rand!(A::AbstractArray) = rand!(GLOBAL_RNG, A)
+function rand end
 
-rand(r::AbstractArray) = rand(GLOBAL_RNG, r)
+## rand!
 
 """
     rand!([rng=GLOBAL_RNG], A, [S=eltype(A)])
@@ -74,7 +68,4 @@ julia> rand!(rng, zeros(5))
  0.794026
 ```
 """
-rand!(A::AbstractArray, r::AbstractArray) = rand!(GLOBAL_RNG, A, r)
-
-rand(r::AbstractArray, dims::Dims) = rand(GLOBAL_RNG, r, dims)
-rand(r::AbstractArray, dims::Integer...) = rand(GLOBAL_RNG, r, convert(Dims, dims))
+function rand! end

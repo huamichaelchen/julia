@@ -1,6 +1,6 @@
 # This file is a part of Julia. License is MIT: https://julialang.org/license
 
-## RandomDevice
+# RandomDevice
 
 const BitIntegerType = Union{map(T->Type{T}, Base.BitInteger_types)...}
 const BoolBitIntegerType = Union{Type{Bool},BitIntegerType}
@@ -14,11 +14,14 @@ if is_windows()
     end
 
     function rand(rd::RandomDevice, T::BoolBitIntegerType)
-        win32_SystemFunction036!(rd.buffer)
+        rand!(rd, rd.buffer)
         @inbounds return rd.buffer[1] % T
     end
 
-    rand!(rd::RandomDevice, A::BoolBitIntegerArray) = (win32_SystemFunction036!(A); A)
+    function rand!(rd::RandomDevice, A::BoolBitIntegerArray)
+        ccall((:SystemFunction036, :Advapi32), stdcall, UInt8, (Ptr{Void}, UInt32), A, sizeof(A))
+        A
+    end
 else # !windows
     struct RandomDevice <: AbstractRNG
         file::IOStream
@@ -37,9 +40,3 @@ end # os-test
 Create a `RandomDevice` RNG object. Two such objects will always generate different streams of random numbers.
 """
 RandomDevice
-
-
-rand(rng::RandomDevice, ::Type{Close1Open2}) =
-    reinterpret(Float64, 0x3ff0000000000000 | rand(rng, UInt64) & 0x000fffffffffffff)
-
-rand(rng::RandomDevice, ::Type{CloseOpen}) = rand(rng, Close1Open2) - 1.0

@@ -1,8 +1,8 @@
 # This file is a part of Julia. License is MIT: https://julialang.org/license
 
 ## make_seed()
-# make_seed methods produce values of type Array{UInt32}, suitable for MersenneTwister seeding
 
+# make_seed methods produce values of type Array{UInt32}, suitable for MersenneTwister seeding
 function make_seed()
     try
         return rand(RandomDevice(), UInt32, 4)
@@ -63,6 +63,14 @@ true
 srand(r::MersenneTwister) = srand(r, make_seed())
 srand(r::MersenneTwister, n::Integer) = srand(r, make_seed(n))
 
+function srand(r::MersenneTwister, seed::Vector{UInt32})
+    copy!(resize!(r.seed, length(seed)), seed)
+    dsfmt_init_by_array(r.state, r.seed)
+    mt_setempty!(r)
+    return r
+end
+
+### GLOBAL_RNG
 
 function dsfmt_gv_srand()
     # Temporary fix for #8874 and #9124: update global RNG for Rmath

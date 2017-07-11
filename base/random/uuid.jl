@@ -1,4 +1,6 @@
-## random UUID generation
+# This file is a part of Julia. License is MIT: https://julialang.org/license
+
+# random UUID generation
 
 struct UUID
     value::UInt128
@@ -80,9 +82,7 @@ julia> Base.Random.uuid_version(Base.Random.uuid4(rng))
 4
 ```
 """
-function uuid_version(u::UUID)
-    Int((u.value >> 76) & 0xf)
-end
+uuid_version(u::UUID) = Int((u.value >> 76) & 0xf)
 
 Base.convert(::Type{UInt128}, u::UUID) = u.value
 

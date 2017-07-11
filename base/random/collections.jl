@@ -1,6 +1,29 @@
 # This file is a part of Julia. License is MIT: https://julialang.org/license
 
-# random values from Dict, Set, IntSet (for efficiency)
+## random values from AbstractArray
+
+rand(rng::AbstractRNG, r::AbstractArray) = @inbounds return r[rand(rng, 1:length(r))]
+rand(r::AbstractArray) = rand(GLOBAL_RNG, r)
+
+### arrays
+
+function rand!(rng::AbstractRNG, A::AbstractArray, r::AbstractArray)
+    g = RangeGenerator(1:(length(r)))
+    for i in eachindex(A)
+        @inbounds A[i] = r[rand(rng, g)]
+    end
+    return A
+end
+
+rand!(A::AbstractArray, r::AbstractArray) = rand!(GLOBAL_RNG, A, r)
+
+rand(rng::AbstractRNG, r::AbstractArray{T}, dims::Dims) where {T} = rand!(rng, Array{T}(dims), r)
+rand(                  r::AbstractArray,    dims::Dims)           = rand(GLOBAL_RNG, r, dims)
+rand(rng::AbstractRNG, r::AbstractArray,    dims::Integer...) = rand(rng, r, convert(Dims, dims))
+rand(                  r::AbstractArray,    dims::Integer...) = rand(GLOBAL_RNG, r, convert(Dims, dims))
+
+## random values from Dict, Set, IntSet
+
 function rand(r::AbstractRNG, t::Dict)
     isempty(t) && throw(ArgumentError("collection must be non-empty"))
     rg = RangeGenerator(1:length(t.slots))
@@ -35,6 +58,7 @@ rand(r::AbstractRNG, s::Union{Associative,AbstractSet}) = nth(s, rand(r, 1:lengt
 
 rand(s::Union{Associative,AbstractSet}) = rand(GLOBAL_RNG, s)
 
+### arrays
 
 function rand!(r::AbstractRNG, A::AbstractArray, s::Union{Dict,Set,IntSet})
     for i in eachindex(A)
@@ -54,7 +78,7 @@ rand(r::AbstractRNG, s::Union{Associative,AbstractSet}, dims::Integer...) = rand
 rand(s::Union{Associative,AbstractSet}, dims::Integer...) = rand(GLOBAL_RNG, s, convert(Dims, dims))
 rand(s::Union{Associative,AbstractSet}, dims::Dims) = rand(GLOBAL_RNG, s, dims)
 
-# rand from a string
+## random characters from a string
 
 isvalid_unsafe(s::String, i) = !Base.is_valid_continuation(unsafe_load(pointer(s), i))
 isvalid_unsafe(s::AbstractString, i) = isvalid(s, i)
@@ -71,7 +95,8 @@ end
 
 rand(s::AbstractString) = rand(GLOBAL_RNG, s)
 
-## rand from a string for arrays
+### arrays
+
 # we use collect(str), which is most of the time more efficient than specialized methods
 # (except maybe for very small arrays)
 rand!(rng::AbstractRNG, A::AbstractArray, str::AbstractString) = rand!(rng, A, collect(str))
@@ -81,7 +106,7 @@ rand(rng::AbstractRNG, str::AbstractString, d1::Integer, dims::Integer...) = ran
 rand(str::AbstractString, dims::Dims) = rand(GLOBAL_RNG, str, dims)
 rand(str::AbstractString, d1::Integer, dims::Integer...) = rand(GLOBAL_RNG, str, d1, dims...)
 
-# return a random string (often useful for temporary filenames/dirnames)
+## randstring (often useful for temporary filenames/dirnames)
 
 """
     randstring([rng=GLOBAL_RNG], [chars], [len=8])

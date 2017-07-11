@@ -25,8 +25,6 @@ abstract type FloatInterval end
 mutable struct CloseOpen <: FloatInterval end
 mutable struct Close1Open2 <: FloatInterval end
 
-## initialization
-
 function __init__()
     try
         srand()

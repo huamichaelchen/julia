@@ -85,21 +85,14 @@ end
 @inline rand_inbounds(r::MersenneTwister, ::Type{CloseOpen}) = rand_inbounds(r, Close1Open2) - 1.0
 @inline rand_inbounds(r::MersenneTwister) = rand_inbounds(r, CloseOpen)
 
-# produce Float64 values
-@inline rand(r::MersenneTwister, ::Type{I}) where {I<:FloatInterval} = (reserve_1(r); rand_inbounds(r, I))
-
 @inline rand_ui52_raw_inbounds(r::MersenneTwister) = reinterpret(UInt64, rand_inbounds(r, Close1Open2))
 @inline rand_ui52_raw(r::MersenneTwister) = (reserve_1(r); rand_ui52_raw_inbounds(r))
 @inline rand_ui2x52_raw(r::MersenneTwister) = rand_ui52_raw(r) % UInt128 << 64 | rand_ui52_raw(r)
 
-function srand(r::MersenneTwister, seed::Vector{UInt32})
-    copy!(resize!(r.seed, length(seed)), seed)
-    dsfmt_init_by_array(r.state, r.seed)
-    mt_setempty!(r)
-    return r
-end
+rand_ui10_raw(r::MersenneTwister) = rand_ui52_raw(r)
+rand_ui23_raw(r::MersenneTwister) = rand_ui52_raw(r)
 
-# MersenneTwister jump
+## MersenneTwister jump
 
 """
     randjump(r::MersenneTwister, jumps::Integer, [jumppoly::AbstractString=dSFMT.JPOLY1e21]) -> Vector{MersenneTwister}

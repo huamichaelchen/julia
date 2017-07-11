@@ -1,6 +1,10 @@
 # This file is a part of Julia. License is MIT: https://julialang.org/license
 
-## Generate random integer within a range
+# Generate random integer within a range
+
+abstract type RangeGenerator end
+
+## RangeGenerator for BitInteger
 
 # remainder function according to Knuth, where rem_knuth(a, 0) = a
 rem_knuth(a::UInt, b::UInt) = a % (b + (b == 0)) + a * (b == 0)
@@ -14,8 +18,6 @@ maxmultiple(k::T) where {T<:Unsigned} = (div(typemax(T) - k + oneunit(k), k + (k
 # maximum multiple of k within 1:2^32 or 1:2^64 decremented by one, depending on size
 maxmultiplemix(k::UInt64) = if k >> 32 != 0; maxmultiple(k); else (div(0x0000000100000000, k + (k == 0))*k - oneunit(k))::UInt64; end
 
-abstract type RangeGenerator end
-
 struct RangeGeneratorInt{T<:Integer,U<:Unsigned} <: RangeGenerator
     a::T   # first element of the range
     k::U   # range length or zero for full range
@@ -25,15 +27,12 @@ end
 RangeGeneratorInt(a::T, k::U) where {T,U<:Union{UInt32,UInt128}} = RangeGeneratorInt{T,U}(a, k, maxmultiple(k))
 # mixed 32/64 bits entropy generator
 RangeGeneratorInt(a::T, k::UInt64) where {T} = RangeGeneratorInt{T,UInt64}(a, k, maxmultiplemix(k))
-# generator for ranges
+
 function RangeGenerator(r::UnitRange{T}) where T<:Unsigned
-    if isempty(r)
-        throw(ArgumentError("range must be non-empty"))
-    end
+    isempty(r) && throw(ArgumentError("range must be non-empty"))
     RangeGeneratorInt(first(r), last(r) - first(r) + oneunit(T))
 end
 
-# specialized versions
 for (T, U) in [(UInt8, UInt32), (UInt16, UInt32),
                (Int8, UInt32), (Int16, UInt32), (Int32, UInt32), (Int64, UInt64), (Int128, UInt128),
                (Bool, UInt32)]
@@ -45,6 +44,8 @@ for (T, U) in [(UInt8, UInt32), (UInt16, UInt32),
         RangeGeneratorInt(first(r), convert($U, unsigned(last(r) - first(r)) + one($U))) # overflow ok
     end
 end
+
+## RangeGenerator for BigInt
 
 struct RangeGeneratorBigInt <: RangeGenerator
     a::BigInt         # first
@@ -66,6 +67,7 @@ function RangeGenerator(r::UnitRange{BigInt})
     return RangeGeneratorBigInt(first(r), m, nlimbs, nlimbsmax, mask)
 end
 
+## rand(::RangeGenerator)
 
 # this function uses 32 bit entropy for small ranges of length <= typemax(UInt32) + 1
 # RangeGeneratorInt is responsible for providing the right value of k
@@ -110,12 +112,7 @@ function rand(rng::AbstractRNG, g::RangeGeneratorBigInt)
     MPZ.add!(x, g.a)
 end
 
-rand(rng::AbstractRNG, r::UnitRange{<:Union{Signed,Unsigned,BigInt,Bool}}) = rand(rng, RangeGenerator(r))
-
-
-# Randomly draw a sample from an AbstractArray r
-# (e.g. r is a range 0:2:8 or a vector [2, 3, 5, 7])
-rand(rng::AbstractRNG, r::AbstractArray) = @inbounds return r[rand(rng, 1:length(r))]
+### arrays
 
 function rand!(rng::AbstractRNG, A::AbstractArray, g::RangeGenerator)
     for i in eachindex(A)
@@ -124,15 +121,8 @@ function rand!(rng::AbstractRNG, A::AbstractArray, g::RangeGenerator)
     return A
 end
 
+## rand(::UnitRange)
+
+rand(rng::AbstractRNG, r::UnitRange{<:Union{Signed,Unsigned,BigInt,Bool}}) = rand(rng, RangeGenerator(r))
+
 rand!(rng::AbstractRNG, A::AbstractArray, r::UnitRange{<:Union{Signed,Unsigned,BigInt,Bool,Char}}) = rand!(rng, A, RangeGenerator(r))
-
-function rand!(rng::AbstractRNG, A::AbstractArray, r::AbstractArray)
-    g = RangeGenerator(1:(length(r)))
-    for i in eachindex(A)
-        @inbounds A[i] = r[rand(rng, g)]
-    end
-    return A
-end
-
-rand(rng::AbstractRNG, r::AbstractArray{T}, dims::Dims) where {T} = rand!(rng, Array{T}(dims), r)
-rand(rng::AbstractRNG, r::AbstractArray, dims::Integer...) = rand(rng, r, convert(Dims, dims))
