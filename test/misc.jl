@@ -771,6 +771,14 @@ module DeprecationTests # to test @deprecate
     @deprecate A{T}(x::S) where {T, S} f()
 end # module
 
+# issue #21972
+struct T21972
+    @noinline function T21972()
+        Base.depwarn("something", :T21972)
+        new()
+    end
+end
+
 @testset "@deprecate" begin
     using .DeprecationTests
     # enable when issue #22043 is fixed
@@ -793,6 +801,13 @@ end # module
 
     # @test @test_warn "A{T}(x::S) where {T, S} is deprecated, use f() instead." A{Int}(1.)
     # @test @test_nowarn A{Int}(1.)
+
+    # issue #21972
+    @noinline function f21972()
+        T21972()
+    end
+    @test_warn "deprecated" f21972()
+    @test_nowarn f21972()
 end
 
 @testset "inline bug #18735" begin
