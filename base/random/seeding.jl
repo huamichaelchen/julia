@@ -89,3 +89,7 @@ function srand(seed::Union{Integer,Vector{UInt32}})
     srand(GLOBAL_RNG, seed)
     dsfmt_gv_srand()
 end
+
+## Global RNG (must be defined after srand)
+
+const GLOBAL_RNG = MersenneTwister(0)
