@@ -49,6 +49,15 @@ end
 # Test that the client port is reused. SO_REUSEPORT may not be supported on
 # all UNIX platforms, Linux kernels prior to 3.9 and older versions of OSX
 if ccall(:jl_has_so_reuseport, Int32, ()) == 1
+    # Force all worker-worker connections to be setup.
+    wlist = reverse(workers())
+    @sync for (i,p) in enumerate(wlist)
+        i==length(wlist) && continue
+        @async remotecall_fetch(wl -> asyncmap(q->remotecall_fetch(myid, q), wl),
+                                p, wlist[i+1:end])
+
+    end
+
     reuseport_tests()
 else
     info("SO_REUSEPORT is unsupported, skipping reuseport tests.")
